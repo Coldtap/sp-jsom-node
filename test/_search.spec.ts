@@ -7,17 +7,16 @@ import { getAuthCtx, getAuth } from './misc';
 import { Environments } from './configs';
 
 describe(`sp-jsom-node search tests`, () => {
-
   for (const envConf of Environments) {
-
     describe(`run tests in ${envConf.environmentName}`, () => {
-
       let config: IAuthContext;
       let jsom: JsomNode;
 
-      before('preauthenticate for fair timings', function(done: Mocha.Done): void {
+      before('preauthenticate for fair timings', function (done: Mocha.Done): void {
         this.timeout(30 * 1000);
-        getAuth(Environments[0]).then(() => done()).catch(done);
+        getAuth(Environments[0])
+          .then(() => done())
+          .catch(done);
       });
 
       before('configure JsomNode', function (done: Mocha.Done): void {
@@ -26,7 +25,7 @@ describe(`sp-jsom-node search tests`, () => {
         getAuthCtx(envConf)
           .then((ctx) => {
             config = ctx;
-            jsom = new JsomNode({ modules: [ 'search' ] }).init(config);
+            jsom = new JsomNode({ modules: ['search'] }).init(config);
             done();
           })
           .catch(done);
@@ -42,11 +41,11 @@ describe(`sp-jsom-node search tests`, () => {
         keywordQuery.set_queryText('*');
         const searchExecutor = new Microsoft.SharePoint.Client.Search.Query.SearchExecutor(ctx);
         const results = searchExecutor.executeQuery(keywordQuery);
-        ctx.executeQueryPromise().then(() => done()).catch(done);
+        ctx
+          .executeQueryPromise()
+          .then(() => done())
+          .catch(done);
       });
-
     });
-
   }
-
 });

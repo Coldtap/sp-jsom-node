@@ -1,23 +1,22 @@
 import { join } from 'path';
-import { JsomNode, IJsomNodeContext } from './../../src/index'; // 'sp-jsom-node';
+import { JsomNode, IJsomNodeContext } from '../../src/index'; // 'sp-jsom-node';
 
 const conf1 = require(join(process.cwd(), './config/integration/private.2016.json')); // Config should exist
 const conf2 = require(join(process.cwd(), './config/integration/private.2013.json')); // Config should exist
 
 const envCtx1: IJsomNodeContext = {
   siteUrl: conf1.siteUrl,
-  authOptions: { ...conf1 }
+  authOptions: { ...conf1 },
 };
 
 const envCtx2: IJsomNodeContext = {
   siteUrl: conf2.siteUrl,
-  authOptions: { ...conf2 }
+  authOptions: { ...conf2 },
 };
 
 const jsom = new JsomNode();
 
 (async () => {
-
   // Switching to env1
 
   jsom.init(envCtx1);
@@ -65,6 +64,4 @@ const jsom = new JsomNode();
   await ctx2.executeQueryPromise();
 
   console.log(`Web 2 lists:`, oListsCollection2.get_data().length); // .map(l => l.get_title()));
-
-})()
-  .catch(console.log);
+})().catch(console.log);

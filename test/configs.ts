@@ -4,20 +4,24 @@ import { IEnvironmentConfig, ICiEnvironmentConfig, IPrivateEnvironmentConfig } f
 config();
 
 const ci = process.argv.slice(2).indexOf('--ci') !== -1;
-if (ci) { process.env.SPAUTH_ENV = 'production'; }
+if (ci) {
+  process.env.SPAUTH_ENV = 'production';
+}
 
 export const Environments: IEnvironmentConfig[] = ((headless: boolean) => {
   if (headless) {
-    const ciTestConf: ICiEnvironmentConfig[] = [{
-      environmentName: 'SharePoint Online',
-      legacy: false,
-      siteUrl: process.env.SPAUTH_SITEURL,
-      authOptions: {
-        username: process.env.SPAUTH_USERNAME,
-        password: process.env.SPAUTH_PASSWORD
+    const ciTestConf: ICiEnvironmentConfig[] = [
+      {
+        environmentName: 'SharePoint Online',
+        legacy: false,
+        siteUrl: process.env.SPAUTH_SITEURL,
+        authOptions: {
+          username: process.env.SPAUTH_USERNAME,
+          password: process.env.SPAUTH_PASSWORD,
+        },
+        envCode: 'spo',
       },
-      envCode: 'spo'
-    }];
+    ];
     return ciTestConf;
   }
   const privateConf: IPrivateEnvironmentConfig[] = [
@@ -25,7 +29,7 @@ export const Environments: IEnvironmentConfig[] = ((headless: boolean) => {
       environmentName: 'SharePoint Online',
       configPath: './config/integration/private.spo.json',
       legacy: false,
-      envCode: 'spo'
+      envCode: 'spo',
     },
     // {
     //   environmentName: 'On-Premise 2019',

@@ -9,32 +9,18 @@ export const JsomModules: IJsomModule = {
     'msajaxbundle.debug.js',
     'sp.core.debug.js',
     'sp.runtime.debug.js',
-    'sp.debug.js'
+    'sp.debug.js',
   ],
   search: [
     'sp.search.debug.js',
     // 'sp.init.debug.js',
-    'search.clientcontrols.debug.js' // ToDO: Verify if ever needed in Node.js app
+    'search.clientcontrols.debug.js', // ToDO: Verify if ever needed in Node.js app
   ],
-  taxonomy: [
-    'sp.taxonomy.debug.js'
-  ],
-  userprofiles: [
-    'sp.userprofiles.debug.js'
-  ],
-  publishing: [
-    'sp.publishing.debug.js'
-  ],
-  policy: [
-    'sp.policy.debug.js'
-  ],
-  documentmanagement: [
-    'sp.documentmanagement.debug.js'
-  ],
-  workmanagement: [
-    'sp.workmanagement.debug.js'
-  ],
-  project: [
-    'PS.debug.js'
-  ]
+  taxonomy: ['sp.taxonomy.debug.js'],
+  userprofiles: ['sp.userprofiles.debug.js'],
+  publishing: ['sp.publishing.debug.js'],
+  policy: ['sp.policy.debug.js'],
+  documentmanagement: ['sp.documentmanagement.debug.js'],
+  workmanagement: ['sp.workmanagement.debug.js'],
+  project: ['PS.debug.js'],
 };

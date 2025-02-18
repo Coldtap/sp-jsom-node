@@ -5,11 +5,10 @@ const creds = require(path.join(__dirname, '../config/private.json'));
 
 const x: IJsomNodeContext = {
   siteUrl: creds.siteUrl, // I.e. site collection url
-  authOptions: { ...creds }
+  authOptions: { ...creds },
 };
 
 (async () => {
-
   new JsomNode().init(x);
 
   // Creating contexts for webs under the same creds' context
@@ -27,6 +26,4 @@ const x: IJsomNodeContext = {
 
   console.log(`Web 1: ${web1.get_title()}`);
   console.log(`Web 2: ${web2.get_title()}`);
-
-})()
-  .catch(console.log);
+})().catch(console.log);

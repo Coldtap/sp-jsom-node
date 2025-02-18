@@ -6,16 +6,15 @@ const creds2 = require(path.join(__dirname, '../config/private.env2.json'));
 
 const x1: IJsomNodeContext = {
   siteUrl: creds1.siteUrl,
-  authOptions: { ...creds1 }
+  authOptions: { ...creds1 },
 };
 
 const x2: IJsomNodeContext = {
   siteUrl: creds2.siteUrl,
-  authOptions: { ...creds2 }
+  authOptions: { ...creds2 },
 };
 
 (async () => {
-
   // Initiating first environment context
   new JsomNode().init(x1);
 
@@ -36,6 +35,4 @@ const x2: IJsomNodeContext = {
   await ctx2.executeQueryPromise();
 
   console.log(`Web 2: ${web2.get_title()}`);
-
-})()
-  .catch(console.log);
+})().catch(console.log);

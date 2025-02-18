@@ -1,9 +1,9 @@
 import * as path from 'path';
-import * as https from 'https';
+// import * as https from 'https';
 
 import { AuthConfig } from 'node-sp-auth-config';
 import { create as createSPRequest, ISPRequest } from 'sp-request';
-import { Cpass } from 'cpass';
+// import { Cpass } from 'cpass';
 
 import utils from './utils';
 import { JsomModules, lcid } from './config';
@@ -14,11 +14,63 @@ import './extensions/definitions';
 import { executeQueryPromise } from './extensions/executeQueryPromise';
 // Import JSOM ententions
 
+function patchMicrosoftAjaxGlobal() {
+  const origRegisterInterface = Type.prototype.registerInterface;
+  Type.prototype.registerInterface = function (typeName) {
+    if (['IEnumerator', 'IEnumerable', 'IDisposable'].indexOf(typeName) !== -1) {
+      if (global[typeName]) {
+        this.prototype.constructor = this;
+        this.__typeName = typeName;
+        this.__interface = true;
+        return this;
+      }
+      global[typeName] = this;
+    }
+    return origRegisterInterface.apply(this, [].slice.call(arguments));
+  };
+}
+
+// setup browser-like env with stubs:
+global.navigator = {
+  userAgent: 'trapbase',
+};
+
+let doc = {
+  documentElement: {},
+  cookie: '',
+};
+Object.defineProperty(global, 'document', {
+  get: () => doc,
+  set: (o) => {
+    doc = o;
+  },
+});
+global.window = global;
+global.Type = Function;
+global.location = {
+  href: '',
+  path: '',
+  pathname: '',
+  hash: '',
+};
+/* tslint:disable-next-line no-empty */
+global.attachEvent = (args) => {};
+global.parent = global.window;
+
+/* tslint:disable no-var-requires */
+require('../jsom/2016/1033/initstrings.debug.js');
+require('../jsom/2016/init.debug.js');
+require('../jsom/2016/msajaxbundle.debug.js');
+// Fix issue with IEnumerator/etc classes not existing before interface is registered
+patchMicrosoftAjaxGlobal();
+require('../jsom/2016/sp.core.debug.js');
+require('../jsom/2016/sp.runtime.debug.js');
+require('../jsom/2016/sp.debug.js');
+
 declare const global: any;
 declare const sp_initialize: any;
 
 export class JsomNode {
-
   private static ctxs: {
     [ctx: string]: ISPRequest;
   } = {};
@@ -26,12 +78,14 @@ export class JsomNode {
   private settings: IJsomNodeSettings;
   private context: IJsomNodeContext;
   private request: ISPRequest;
-  private agent: https.Agent = new https.Agent({
-    rejectUnauthorized: false,
-    keepAlive: true,
-    keepAliveMsecs: 10000
-  });
+  // private agent: https.Agent = new https.Agent({
+  //   rejectUnauthorized: false,
+  //   keepAlive: true,
+  //   keepAliveMsecs: 10000
+  // });
   private instanceId: string;
+
+  public currentDigestRequest?: Promise<void>;
 
   constructor(settings: IJsomNodeSettings = {}) {
     this.settings = settings;
@@ -41,13 +95,13 @@ export class JsomNode {
   // Init JsomNode environment
   public init(context: IJsomNodeContext): JsomNode {
     const authOptions = context.authOptions;
-    const cpass = new Cpass();
-    const encodable = ['password', 'clientId', 'clientSecret'];
-    for (const prop of encodable) {
-      if (authOptions[prop]) {
-        authOptions[prop] = cpass.decode((authOptions[prop]));
-      }
-    }
+    // const cpass = new Cpass();
+    // const encodable = ['password', 'clientId', 'clientSecret'];
+    // for (const prop of encodable) {
+    //   if (authOptions[prop]) {
+    //     authOptions[prop] = cpass.decode((authOptions[prop]));
+    //   }
+    // }
     this.context = { ...context, authOptions };
     this.request = createSPRequest(this.context.authOptions);
     this.mimicBrowser();
@@ -61,14 +115,14 @@ export class JsomNode {
     return new AuthConfig(config).getContext().then((ctx) => {
       this.context = {
         siteUrl: ctx.siteUrl,
-        authOptions: ctx.authOptions
+        authOptions: ctx.authOptions,
       };
       this.settings = {
         ...this.settings,
         ...{
           envCode: config.envCode || this.settings.envCode,
-          modules: config.modules || this.settings.modules
-        }
+          modules: config.modules || this.settings.modules,
+        },
       };
       this.init(this.context);
       return ctx.siteUrl;
@@ -91,35 +145,36 @@ export class JsomNode {
 
   // Mimic environment to pretend as a browser
   private mimicBrowser() {
-
     // Navigator polyfil
     global.navigator = {
-      userAgent: 'sp-jsom-node'
+      userAgent: 'sp-jsom-node',
     };
 
     // Window polyfil
     global.window = {
       location: {
         href: '',
-        pathname: ''
+        pathname: '',
       },
       document: {
         cookie: '',
-        URL: this.context.siteUrl
+        URL: this.context.siteUrl,
       },
       setTimeout: global.setTimeout,
       clearTimeout: global.clearTimeout,
-      attachEvent: () => { /**/ },
+      attachEvent: () => {
+        /**/
+      },
       _spPageContextInfo: {
-        webServerRelativeUrl: `/${this.context.siteUrl.split('/').splice(3, 100).join('/')}`
-      }
+        webServerRelativeUrl: `/${this.context.siteUrl.split('/').splice(3, 100).join('/')}`,
+      },
     };
 
     // Document polyfil
     global.document = {
       documentElement: {},
       URL: '',
-      getElementsByTagName: (name) => []
+      getElementsByTagName: (name) => [],
     };
 
     global.Type = Function;
@@ -143,7 +198,6 @@ export class JsomNode {
 
     // Register namespaces fix
     (() => {
-
       const registerNamespace = (namespaceString: string): void => {
         let curNs = global;
         global.window = global.window || {};
@@ -169,18 +223,18 @@ export class JsomNode {
       try {
         registerNamespace('SP.Utilities');
         global.SP.Utilities.HttpUtility = SP.Utilities.HttpUtility || {};
-      } catch (ex) { /**/ }
-
+      } catch (ex) {
+        /**/
+      }
     })();
-
   }
 
   // Load JSOM scripts to global context
   private loadScripts(modules: string[] = ['core'], envCode: string = 'spo') {
-
     global.envCode = envCode;
     global.loadedJsomScripts = global.loadedJsomScripts || [];
-    if (modules.indexOf('core') !== 0) { // Core module first
+    if (modules.indexOf('core') !== 0) {
+      // Core module first
       modules = ['core'].concat(modules);
     }
 
@@ -190,25 +244,25 @@ export class JsomNode {
         JsomModules[module].forEach((jsomScript) => {
           // Ignore already loaded
           if (global.loadedJsomScripts.indexOf(jsomScript.toLowerCase()) === -1) {
-            let filePath: string = process.env.JSOM_ASSETS_FOLDER
-              ? path.join(process.env.JSOM_ASSETS_FOLDER, envCode, jsomScript.replace('{{lcid}}', lcid))
-              : path.join(__dirname, '..', 'jsom', envCode, jsomScript.replace('{{lcid}}', lcid));
+            // let filePath: string = process.env.JSOM_ASSETS_FOLDER
+            //   ? path.join(process.env.JSOM_ASSETS_FOLDER, envCode, jsomScript.replace('{{lcid}}', lcid))
+            //   : path.join(__dirname, '..', 'jsom', envCode, jsomScript.replace('{{lcid}}', lcid));
 
             // if (!fs.existsSync(filePath)) {
             //   filePath = path.join(__dirname, 'jsom', envCode, jsomScript.replace('{{lcid}}', lcid));
             // }
 
             // ====>
-            if (filePath.substring(0, 1) === '\\') {
-              filePath = '.' + filePath.replace(/\\/g, '/');
-            }
-            utils.require(filePath); // Load a JSOM script
-            // ====<
+            // if (filePath.substring(0, 1) === '\\') {
+            //   filePath = '.' + filePath.replace(/\\/g, '/');
+            // }
+            // utils.require(filePath); // Load a JSOM script
+            // // ====<
 
-            // Patch Microsoft Ajax library
-            if (jsomScript === 'msajaxbundle.debug.js') {
-              this.patchMicrosoftAjax();
-            }
+            // // Patch Microsoft Ajax library
+            // if (jsomScript === 'msajaxbundle.debug.js') {
+            //   this.patchMicrosoftAjax();
+            // }
             // Register script as loaded
             global.loadedJsomScripts.push(jsomScript.toLowerCase());
           }
@@ -217,39 +271,23 @@ export class JsomNode {
 
     // Apply JSOM extensions
     (() => {
-
       // Extending ClientContext
       (SP as any).ClientRuntimeContext.prototype.executeQueryPromise = function (): Promise<void> {
         return executeQueryPromise(this);
       };
-
     })();
   }
 
   // Escape Microsoft Ajax issues
   private patchMicrosoftAjax() {
-    const origRegisterInterface = Type.prototype.registerInterface;
-    Type.prototype.registerInterface = function (typeName) {
-      if (['IEnumerator', 'IEnumerable', 'IDisposable'].indexOf(typeName) !== -1) {
-        if (global[typeName]) {
-          this.prototype.constructor = this;
-          this.__typeName = typeName;
-          this.__interface = true;
-          return this;
-        }
-        global[typeName] = this;
-      }
-      return origRegisterInterface.apply(this, [].slice.call(arguments));
-    };
+    patchMicrosoftAjaxGlobal();
   }
 
   // Proxy JSOM XmlHttpRequest through sp-request
   private proxyRequestManager() {
-
     let request: ISPRequest = this.request;
 
     (Sys.Net as any)._WebRequestManager.prototype.executeRequest = (wReq: any) => {
-
       const instanceId = wReq._headers['X-JsomNode-InstanceID'];
       request = JsomNode.ctxs[instanceId] || request;
 
@@ -257,51 +295,52 @@ export class JsomNode {
       const requestUrl: string = utils.isUrlAbsolute(wReq._url) ? wReq._url : `${hostUrl}${wReq._url}`;
       const webAbsoluteUrl = requestUrl.split('/_api')[0].split('/_vti_bin')[0];
 
-      request.requestDigest(webAbsoluteUrl)
+      this.currentDigestRequest = request
+        .requestDigest(webAbsoluteUrl)
         .then((digest) => {
-
           const isJsom: boolean = wReq._url.indexOf('/_vti_bin/client.svc/ProcessQuery') !== -1;
-
-          const jsomHeaders = !isJsom ? {} : {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-RequestDigest': digest
-            // 'Content-Length': wReq._body && wReq._body.length
-          };
+          const jsomHeaders = !isJsom
+            ? {}
+            : {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-RequestDigest': digest,
+                // 'Content-Length': wReq._body && wReq._body.length
+              };
 
           if (wReq._httpVerb.toLowerCase() === 'post') {
-            return request.post(requestUrl, {
-              // url: requestUrl,
-              headers: {
-                ...wReq._headers,
-                ...jsomHeaders
-              },
-              body: wReq._body,
-              responseType: !isJsom ? 'json' : undefined,
-              agent: utils.isUrlHttps(requestUrl) ? this.agent : undefined
-            })
+            const res = request
+              .post(requestUrl, {
+                // url: requestUrl,
+                headers: {
+                  ...wReq._headers,
+                  ...jsomHeaders,
+                },
+                body: wReq._body,
+                // agent: utils.isUrlHttps(requestUrl) ? this.agent : undefined
+              })
               .then((response) => {
-                const responseData = isJsom ? response.body : JSON.stringify(response.body);
-                wReq._events._list.completed[0]({
-                  _xmlHttpRequest: {
-                    status: response.statusCode,
-                    responseText: responseData
-                  },
-                  get_statusCode: () => response.statusCode,
-                  get_responseData: () => responseData,
-                  getResponseHeader: (header) => response.headers[header.toLowerCase()],
-                  get_aborted: () => false,
-                  get_timedOut: () => false,
-                  get_responseAvailable: () => true
+                const bodyPromise: Promise<unknown> = !isJsom ? response.json() : response.text();
+                bodyPromise.then((body) => {
+                  const responseData = isJsom ? body : JSON.stringify(body);
+                  wReq._events._list.completed[0]({
+                    _xmlHttpRequest: {
+                      status: response.status,
+                      responseText: responseData,
+                    },
+                    get_statusCode: () => response.status,
+                    get_responseData: () => responseData,
+                    getResponseHeader: (header) => response.headers.get(header.toLowerCase()),
+                    get_aborted: () => false,
+                    get_timedOut: () => false,
+                    get_responseAvailable: () => true,
+                  });
                 });
-            });
+              });
           }
-
         })
         .catch((error) => {
           throw new Error(error);
         });
-
     };
   }
-
 }

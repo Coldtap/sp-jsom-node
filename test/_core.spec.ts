@@ -8,25 +8,24 @@ import { getAuthCtx, getAuth } from './misc';
 import { Environments } from './configs';
 
 const testVariables = {
-  newListName: 'JsomNode Temporary List'
+  newListName: 'JsomNode Temporary List',
 };
 
 declare const global: any;
 
 describe(`sp-jsom-node core tests`, () => {
-
   for (const envConf of Environments) {
-
     describe(`run tests in ${envConf.environmentName}`, () => {
-
       let request: sprequest.ISPRequest;
       let config: IAuthContext;
       let _spPageContextInfo: any;
       let jsom: JsomNode;
 
-      before('preauthenticate for fair timings', function(done: Mocha.Done): void {
+      before('preauthenticate for fair timings', function (done: Mocha.Done): void {
         this.timeout(30 * 1000);
-        getAuth(Environments[0]).then(() => done()).catch(done);
+        getAuth(Environments[0])
+          .then(() => done())
+          .catch(done);
       });
 
       before('configure JsomNode', function (done: Mocha.Done): void {
@@ -49,7 +48,10 @@ describe(`sp-jsom-node core tests`, () => {
         const ctx = jsom.getContext();
         const oWeb = ctx.get_web();
         ctx.load(oWeb);
-        ctx.executeQueryPromise().then(() => done()).catch(done);
+        ctx
+          .executeQueryPromise()
+          .then(() => done())
+          .catch(done);
       });
 
       it(`should get web's title`, function (done: Mocha.Done): void {
@@ -63,12 +65,10 @@ describe(`sp-jsom-node core tests`, () => {
           return ctx.executeQueryPromise().then(() => oWeb.get_title());
         };
 
-        request.get(`${config.siteUrl}/_api/web?$select=Title`)
+        request
+          .get(`${config.siteUrl}/_api/web?$select=Title`)
           .then((response) => {
-            return Promise.all([
-              getWeb(),
-              response.body.d.Title
-            ]);
+            return Promise.all([getWeb(), response.body.d.Title]);
           })
           .then((response) => {
             expect(response[0]).to.equal(response[1]);
@@ -89,12 +89,10 @@ describe(`sp-jsom-node core tests`, () => {
           return ctx.executeQueryPromise().then(() => oLists.get_data());
         };
 
-        request.get(`${config.siteUrl}/_api/web/lists?$select=Title`)
+        request
+          .get(`${config.siteUrl}/_api/web/lists?$select=Title`)
           .then((response) => {
-            return Promise.all([
-              getLists(),
-              response.body.d.results
-            ]);
+            return Promise.all([getLists(), response.body.d.results]);
           })
           .then((response) => {
             expect(response[0].length).to.equal(response[1].length);
@@ -197,11 +195,14 @@ describe(`sp-jsom-node core tests`, () => {
             const oItem = oList.getItemById(itemId);
 
             oItem.deleteObject();
-            ctx.executeQueryAsync(() => {
-              resolve(oItem);
-            }, (sender, args) => {
-              reject(args.get_message());
-            });
+            ctx.executeQueryAsync(
+              () => {
+                resolve(oItem);
+              },
+              (sender, args) => {
+                reject(args.get_message());
+              }
+            );
           });
         };
 
@@ -255,10 +256,12 @@ describe(`sp-jsom-node core tests`, () => {
         this.timeout(30 * 1000);
 
         let digest: string;
-        request.requestDigest(config.siteUrl)
+        request
+          .requestDigest(config.siteUrl)
           .then((response) => {
             digest = response;
-            return request.get(`${config.siteUrl}/_api/web/lists/getByTitle('${testVariables.newListName}')`)
+            return request
+              .get(`${config.siteUrl}/_api/web/lists/getByTitle('${testVariables.newListName}')`)
               .then((res) => {
                 return 'can delete';
               })
@@ -276,8 +279,8 @@ describe(`sp-jsom-node core tests`, () => {
                 headers: {
                   'X-RequestDigest': digest,
                   'X-HTTP-Method': 'DELETE',
-                  'IF-MATCH': '*'
-                }
+                  'IF-MATCH': '*',
+                },
               });
             } else {
               return '';
@@ -285,30 +288,27 @@ describe(`sp-jsom-node core tests`, () => {
           })
           .then(() => done())
           .catch(done);
-
       });
-
     });
-
   }
 
   // Need multiple environments to test this case
   if (Environments.length > 1) {
     it(`should support multiple contexts`, function (done: Mocha.Done): void {
       this.timeout(30 * 1000);
-      Promise
-        .all(Environments.map((envConf) => getAuthCtx(envConf)))
+      Promise.all(Environments.map((envConf) => getAuthCtx(envConf)))
         .then((ctxs) => {
-          return Promise.all(ctxs.map((conf) => {
-            const ctx = new JsomNode().init(conf).getContext();
-            const oWeb = ctx.get_web();
-            ctx.load(oWeb);
-            return ctx.executeQueryPromise();
-          }));
+          return Promise.all(
+            ctxs.map((conf) => {
+              const ctx = new JsomNode().init(conf).getContext();
+              const oWeb = ctx.get_web();
+              ctx.load(oWeb);
+              return ctx.executeQueryPromise();
+            })
+          );
         })
         .then(() => done())
         .catch(done);
     });
   }
-
 });

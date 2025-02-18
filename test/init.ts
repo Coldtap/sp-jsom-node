@@ -4,8 +4,7 @@ import * as colors from 'colors';
 
 import { Environments, IPrivateEnvironmentConfig } from './configs';
 
-async function checkOrPromptForIntegrationConfigCreds (): Promise<void> {
-
+async function checkOrPromptForIntegrationConfigCreds(): Promise<void> {
   for (const conf of Environments) {
     console.info(`\n=== ${colors.bold.yellow(`${conf.environmentName} Credentials`)} ===\n`);
     const c = conf as IPrivateEnvironmentConfig;
@@ -18,7 +17,6 @@ async function checkOrPromptForIntegrationConfigCreds (): Promise<void> {
   }
 
   console.info('\n');
-
 }
 
 if (process.argv.indexOf('--init') !== -1) {

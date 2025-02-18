@@ -17,18 +17,23 @@ export const downloadJsomScripts = async (envCfgs: IEnvironmentConfig[]): Promis
     for (const moduleName of Object.keys(JsomModules)) {
       const JsomScripts = JsomModules[moduleName];
       for (const script of JsomScripts) {
-
         const scriptPath = script.replace('{{lcid}}', lcid);
         const scriptUrl = `${siteUrl}/_layouts/15/${scriptPath}`;
-        await spr.get(scriptUrl, {
-          headers: {
-            Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-          },
-          responseType: undefined
-        })
+        await spr
+          .get(scriptUrl, {
+            headers: {
+              Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            },
+            responseType: undefined,
+          })
           .then((response: any) => {
             if (response.statusCode === 200) {
-              const localFilePath = path.join(process.cwd(), 'jsom', envCfg.envCode || '', scriptUrl.split('/_layouts/15/')[1]);
+              const localFilePath = path.join(
+                process.cwd(),
+                'jsom',
+                envCfg.envCode || '',
+                scriptUrl.split('/_layouts/15/')[1]
+              );
               mkdirp.sync(path.dirname(localFilePath));
               fs.writeFileSync(localFilePath, response.body);
               console.log(` ${colors.gray(`${scriptPath}`)} (${colors.green(`done`)})`);
@@ -38,7 +43,6 @@ export const downloadJsomScripts = async (envCfgs: IEnvironmentConfig[]): Promis
           .catch((err: any) => {
             console.log(` ${colors.gray.bold(`${scriptPath}`)} (error: ${colors.red(`${err.message}`)})`);
           });
-
       }
     }
   }
